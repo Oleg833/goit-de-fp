@@ -121,36 +121,14 @@ aggregated_df.show()
 # 6. Вивід результатів
 # a) Стрим у Kafka
 aggregated_df.selectExpr(
-    "CAST(NULL AS STRING) AS key", "to_json(struct(*)) AS value"
-).write.format("kafka").option("kafka.bootstrap.servers", "77.81.230.104:9092").option(
-    "kafka.security.protocol", "SASL_PLAINTEXT"
+    "to_json(struct(sport, medal, avg_height, avg_weight, timestamp)) AS value"
+).writeStream.format("kafka").option(
+    "kafka.bootstrap.servers", "77.81.230.104:9092"
 ).option(
-    "kafka.sasl.mechanism", "PLAIN"
+    "topic", "aggregated_athlete_stats"
 ).option(
-    "kafka.sasl.jaas.config",
-    "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='VawEzo1ikLtrA8Ug8THa';",
-).option(
-    "topic", "athlete_event_results"
-).save()
-
-
-# 1. Зчитування даних з MySQL
-jdbc_url = "jdbc:mysql://217.61.57.46:3306/neo_data"
-db_properties = {
-    "user": "neo_data_admin",
-    "password": "Proyahaxuqithab9oplp",
-    "driver": "com.mysql.cj.jdbc.Driver",
-}
-
-
-# b) Стрим у базу даних
-# def write_to_mysql(batch_df, batch_id):
-#     batch_df.write.jdbc(
-#         url=jdbc_url,
-#         table="neo_data.aggregated_stats",
-#         mode="append",
-#         properties=db_properties,
-#     )
+    "checkpointLocation", "/path/to/kafka/checkpoint"
+).start()
 
 
 # b) Стрим у базу даних
@@ -174,6 +152,9 @@ aggregated_streaming_df = (
     .agg(avg("height").alias("avg_height"), avg("weight").alias("avg_weight"))
     .withColumn("timestamp", current_timestamp())
 )
+
+print("Aggregated Streaming DataFrame before streaming:")
+aggregated_streaming_df.show()
 
 aggregated_streaming_df.writeStream.foreachBatch(write_to_mysql).option(
     "checkpointLocation", "/path/to/mysql/checkpoint"
