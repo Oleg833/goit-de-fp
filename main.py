@@ -100,83 +100,84 @@ data_as_json = (
     .select("data.*")
 )
 
-# 4. Об’єднання даних
-combined_df = athlete_event_results_df.select("athlete_id", "sport", "medal").join(
-    athlete_bio_filtered_df, on="athlete_id", how="inner"
+print("Data as JSON:")
+# # Для дебагінгу, перевіримо, що дані декодуються правильно
+query = (
+    data_as_json.writeStream.outputMode("complete")
+    .format("console")
+    .option("truncate", False)
+    .start()
 )
 
-print("Combined DataFrame (обмежений):")
-combined_df.show()
+# # 4. Об’єднання даних
+# combined_df = athlete_event_results_df.select("athlete_id", "sport", "medal").join(
+#     athlete_bio_filtered_df, on="athlete_id", how="inner"
+# )
 
-# 5. Розрахунок середніх показників
-aggregated_df = (
-    combined_df.groupBy("sport", "medal")
-    .agg(avg("height").alias("avg_height"), avg("weight").alias("avg_weight"))
-    .withColumn("timestamp", current_timestamp())
-)
+# print("Combined DataFrame (обмежений):")
+# combined_df.show()
 
-print("Aggregated DataFrame:")
-aggregated_df.show()
+# # 5. Розрахунок середніх показників
+# aggregated_df = (
+#     combined_df.groupBy("sport", "medal")
+#     .agg(avg("height").alias("avg_height"), avg("weight").alias("avg_weight"))
+#     .withColumn("timestamp", current_timestamp())
+# )
 
-# 6. Вивід результатів
-# a) Стрим у Kafka
-aggregated_df.selectExpr(
-    "CAST(NULL AS STRING) AS key", "to_json(struct(*)) AS value"
-).write.format("kafka").option("kafka.bootstrap.servers", "77.81.230.104:9092").option(
-    "kafka.security.protocol", "SASL_PLAINTEXT"
-).option(
-    "kafka.sasl.mechanism", "PLAIN"
-).option(
-    "kafka.sasl.jaas.config",
-    "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='VawEzo1ikLtrA8Ug8THa';",
-).option(
-    "topic", "athlete_event_results"
-).save()
+# print("Aggregated DataFrame:")
+# aggregated_df.show()
 
-
-# 1. Зчитування даних з MySQL
-jdbc_url = "jdbc:mysql://217.61.57.46:3306/neo_data"
-db_properties = {
-    "user": "neo_data_admin",
-    "password": "Proyahaxuqithab9oplp",
-    "driver": "com.mysql.cj.jdbc.Driver",
-}
+# # 6. Вивід результатів
+# # a) Стрим у Kafka
+# aggregated_df.selectExpr(
+#     "CAST(NULL AS STRING) AS key", "to_json(struct(*)) AS value"
+# ).write.format("kafka").option("kafka.bootstrap.servers", "77.81.230.104:9092").option(
+#     "kafka.security.protocol", "SASL_PLAINTEXT"
+# ).option(
+#     "kafka.sasl.mechanism", "PLAIN"
+# ).option(
+#     "kafka.sasl.jaas.config",
+#     "org.apache.kafka.common.security.plain.PlainLoginModule required username='admin' password='VawEzo1ikLtrA8Ug8THa';",
+# ).option(
+#     "topic", "athlete_event_results"
+# ).save()
 
 
-# b) Стрим у базу даних
+# # b) Стрим у базу даних
 # def write_to_mysql(batch_df, batch_id):
-#     batch_df.write.jdbc(
+#     batch_df.select(
+#         "sport", "medal", "avg_height", "avg_weight", "timestamp"
+#     ).write.jdbc(
 #         url=jdbc_url,
-#         table="neo_data.aggregated_stats",
-#         mode="append",
+#         table="neo_data.oleh_aggregated_stats",
+#         mode="complete",
 #         properties=db_properties,
 #     )
 
 
-# b) Стрим у базу даних
-def write_to_mysql(batch_df, batch_id):
-    batch_df.select(
-        "sport", "medal", "avg_height", "avg_weight", "timestamp"
-    ).write.jdbc(
-        url=jdbc_url,
-        table="neo_data.oleh_aggregated_stats",
-        mode="append",
-        properties=db_properties,
-    )
+# combined_streaming_df = data_as_json.join(
+#     athlete_bio_filtered_df, on="athlete_id", how="inner"
+# )
 
+# aggregated_streaming_df = (
+#     combined_streaming_df.groupBy("sport", "medal")
+#     .agg(avg("height").alias("avg_height"), avg("weight").alias("avg_weight"))
+#     .withColumn("timestamp", current_timestamp())
+# )
 
-combined_streaming_df = data_as_json.join(
-    athlete_bio_filtered_df, on="athlete_id", how="inner"
-)
+# print("Aggregated Streaming DataFrame before streaming:")
+# # Для дебагінгу, перевіримо, що дані декодуються правильно
+# query = (
+#     aggregated_streaming_df.writeStream.outputMode("complete")
+#     .format("console")
+#     .option("truncate", False)
+#     .start()
+# )
 
-aggregated_streaming_df = (
-    combined_streaming_df.groupBy("sport", "medal")
-    .agg(avg("height").alias("avg_height"), avg("weight").alias("avg_weight"))
-    .withColumn("timestamp", current_timestamp())
-)
+# query.awaitTermination()
 
-aggregated_streaming_df.writeStream.foreachBatch(write_to_mysql).option(
-    "checkpointLocation", "/path/to/mysql/checkpoint"
-).start()
+# aggregated_streaming_df.writeStream.foreachBatch(write_to_mysql).option(
+#     "checkpointLocation", "/path/to/mysql/checkpoint"
+# ).start()
 
-spark.streams.awaitAnyTermination()
+# spark.streams.awaitAnyTermination()
