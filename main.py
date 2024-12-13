@@ -103,10 +103,11 @@ data_as_json = (
 print("Data as JSON:")
 # # Для дебагінгу, перевіримо, що дані декодуються правильно
 query = (
-    data_as_json.writeStream.outputMode("complete")
+    data_from_kafka.writeStream.outputMode("complete")
     .format("console")
     .option("truncate", False)
     .start()
+    .awaitTermination()
 )
 
 # # 4. Об’єднання даних
