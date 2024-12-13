@@ -101,14 +101,15 @@ data_as_json = (
 )
 
 print("Data as JSON:")
+data_from_kafka.show()
 # # Для дебагінгу, перевіримо, що дані декодуються правильно
-query = (
-    data_from_kafka.writeStream.outputMode("complete")
-    .format("console")
-    .option("truncate", False)
-    .start()
-    .awaitTermination()
-)
+# query = (
+#     data_from_kafka.writeStream.outputMode("complete")
+#     .format("console")
+#     .option("truncate", False)
+#     .start()
+#     .awaitTermination()
+# )
 
 # # 4. Об’єднання даних
 # combined_df = athlete_event_results_df.select("athlete_id", "sport", "medal").join(
