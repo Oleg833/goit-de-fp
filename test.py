@@ -64,6 +64,7 @@ athlete_event_results_df = spark.read.jdbc(
 print("Athlete Event Results DataFrame:")
 athlete_event_results_df.show()
 
+# запис у Kafka
 athlete_event_results_df.selectExpr(
     "CAST(result_id AS STRING) AS key",
     "to_json(struct(athlete_id, sport, medal)) AS value",
@@ -157,7 +158,7 @@ print("Aggregated Streaming DataFrame before streaming:")
 aggregated_streaming_df.show()
 
 aggregated_streaming_df.writeStream.foreachBatch(write_to_mysql).option(
-    "checkpointLocation", "/path/to/mysql/checkpoint"
+    "checkpointLocation", "/tmp/checkpoints-3"
 ).start()
 
 spark.streams.awaitAnyTermination()
